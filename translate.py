@@ -70,6 +70,17 @@ def print_dict(log, level=0):
 def print_log(log):
     print_dict(log)
     print()
+    
+def save_dict(file, log, level=0):
+    for k, v in log.items():
+        if isinstance(v, dict):
+            save_dict(file, v, level+1)
+        else:
+            file.write(' ' * level * 2 + k + ': ' + str(v) + '\n')
+
+def save_log(file, log):
+    save_dict(file, log)
+    file.write('\n')
 
 def rawlog_to_bytesio(rdata):
     re_col_pat = '\s*\w+\s*,?'
@@ -175,7 +186,7 @@ def translate(log_filename, format_filename):
             log = transform_log_to_readable(log_format, log)
             translated_logs.append(log)
     
-    return translated_logs
+    return log_format, translated_logs
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--help":
@@ -184,8 +195,13 @@ if __name__ == "__main__":
         log_filename = sys.argv[1] if len(sys.argv) > 1  else "log.txt"
         format_filename = sys.argv[2] if len(sys.argv) > 2 else "log_format.h"
     
-        logs = translate(log_filename, format_filename)
+        formats, logs = translate(log_filename, format_filename)
+        
+        files = {}
+        for ltype in formats['types']:
+            files[ltype] = open('log_of_' + ltype + '.txt', 'w')
         
         for l in logs:
             print_log(l)
+            save_log(files[ltype], l)
         
