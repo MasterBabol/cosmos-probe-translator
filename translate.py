@@ -203,5 +203,5 @@ if __name__ == "__main__":
         
         for l in logs:
             print_log(l)
-            save_log(files[ltype], l)
+            save_log(files[l['type']], l)
         
