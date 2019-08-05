@@ -276,8 +276,8 @@ if __name__ == "__main__":
             save_log(gfile, l)
  
             cur += 1
-            if cur % 10000 == 0:
-                print('[!] Processed the line ' + str(cur) + '...')
+            if cur % 1000 == 0:
+                print('[!] Processed the line ' + str(cur) + '.', end='\r')
 
-        print('[+] Finished.')
+        print('\n[+] Finished.')
         
