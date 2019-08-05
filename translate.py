@@ -269,7 +269,7 @@ if __name__ == "__main__":
             files[ltype] = open(logdir + ltype + '.txt', 'w')
         gfile = open(logdir + 'ALL.txt', 'w')
             
-        print('[!] Processing...')
+        print('[!] Starting...')
         cur = 0
         for l in logs:
             save_log(files[l['type']], l)
@@ -277,7 +277,7 @@ if __name__ == "__main__":
  
             cur += 1
             if cur % 10000 == 0:
-                print('[!] Processing... Currently at the line ' + str(cur) + '.')
+                print('[!] Processed the line ' + str(cur) + '...')
 
         print('[+] Finished.')
         
