@@ -256,7 +256,7 @@ if __name__ == "__main__":
         log_filename = sys.argv[1] if len(sys.argv) > 1  else "log.txt"
         format_filename = sys.argv[2] if len(sys.argv) > 2 else "log_format.h"
     
-        print('[!] Paring the log format...')
+        print('[!] Parsing the log format...')
         formats = parse_log_format(format_filename)
         logs = translate(log_filename, formats)
         
@@ -267,7 +267,7 @@ if __name__ == "__main__":
         files = {}
         for ltype in formats['types']:
             files[ltype] = open(logdir + ltype + '.txt', 'w')
-        
+            
         print('[!] Processing...')
         cur = 0
         for l in logs:
@@ -275,7 +275,7 @@ if __name__ == "__main__":
  
             cur += 1
             if cur % 10000 == 0:
-                print('[!] Processing... Currently at line ' + str(cur) + '.')
+                print('[!] Processing... Currently at the line ' + str(cur) + '.')
 
         print('[+] Finished.')
         
