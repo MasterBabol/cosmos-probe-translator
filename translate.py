@@ -58,6 +58,8 @@ def transform_log_to_readable(log_format, log):
             log['payload'][k] = log_format['pobject'][log['payload'][k]]
         elif 'toObject' in k:
             log['payload'][k] = log_format['pobject'][log['payload'][k]]
+        elif 'chNo' == k or 'wayNo' == k:
+            log['payload'][k] = log['payload'][k] if int(log['payload'][k]) != 4294967295 else 'not specified'
         
     return log
 
@@ -73,6 +75,19 @@ def print_dict(log, level=0, additional_line_per_item=False):
 def print_log(log):
     print_dict(log)
     print()
+
+def flatten_dict(dict_data):
+    cur_map = {}
+    for k, v in dict_data.items():
+        if isinstance(v, dict):
+            cur_map.update(flatten_dict(v))
+        elif isinstance(v, list):
+            cur = 0
+            for lv in list:
+                cur_map[k + '[' + str(cur) + ']'] = lv
+        else:
+            cur_map[k] = v
+    return cur_map
     
 def save_dict(file, log, level=0):
     for k, v in log.items():
@@ -190,7 +205,7 @@ def parse_substruct_types_to_dict(format_rawcontent):
     
     return substruct_types
 
-def translate(log_filename, format_filename):
+def parse_log_format(format_filename):
     with open(format_filename) as f:
         format_rawcontent = f.read()
     format_rawcontent = rewrite_number_types(format_rawcontent)
@@ -216,8 +231,9 @@ def translate(log_filename, format_filename):
     log_format['ptypes'] = payload_types
     log_format['sstypes'] = substruct_types
     
-    translated_logs = []
-    
+    return log_format
+
+def translate(log_filename, log_format):
     with open(log_filename) as f:
         while True:
             rdata = f.readline()
@@ -226,9 +242,10 @@ def translate(log_filename, format_filename):
             
             rdata_bin = rawlog_to_bytesio(rdata)
             ld_raw = CursoredData(rdata_bin)
-            log = cursored_data_to_log(payload_types, ld_raw)
+            log = cursored_data_to_log(log_format['ptypes'], ld_raw)
             log = transform_log_to_readable(log_format, log)
-            translated_logs.append(log)
+            
+            yield log
     
     return log_format, translated_logs
 
@@ -239,8 +256,9 @@ if __name__ == "__main__":
         log_filename = sys.argv[1] if len(sys.argv) > 1  else "log.txt"
         format_filename = sys.argv[2] if len(sys.argv) > 2 else "log_format.h"
     
-        print('[!] Processing...')
-        formats, logs = translate(log_filename, format_filename)
+        print('[!] Paring the log format...')
+        formats = parse_log_format(format_filename)
+        logs = translate(log_filename, formats)
         
         logdir = './result/' + log_filename + '/'
         if not os.path.exists(logdir):
@@ -250,7 +268,14 @@ if __name__ == "__main__":
         for ltype in formats['types']:
             files[ltype] = open(logdir + ltype + '.txt', 'w')
         
+        print('[!] Processing...')
+        cur = 0
         for l in logs:
             save_log(files[l['type']], l)
+ 
+            cur += 1
+            if cur % 10000 == 0:
+                print('[!] Processing... Currently at line ' + str(cur) + '.')
+
         print('[+] Finished.')
         
