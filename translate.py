@@ -43,7 +43,7 @@ def cursored_data_to_log(payload_types, cdata):
             log['payload'][tup[1]] = cdata.get(tup[0])
     
     return log
-    
+
 def transform_log_to_readable(log_format, log):
     log = copy.deepcopy(log)
     log['type'] = log_format['types'][log['type']]
@@ -60,6 +60,8 @@ def transform_log_to_readable(log_format, log):
             log['payload'][k] = log_format['pobject'][log['payload'][k]]
         elif 'chNo' == k or 'wayNo' == k:
             log['payload'][k] = log['payload'][k] if int(log['payload'][k]) != 4294967295 else 'not specified'
+        elif 'timeStamp' == k or 'timerCountsForThisPeriod' == k:
+            log['payload'][k] = "{0:,} ns".format(int(log['payload'][k]) * 2) # ns (1s = 500M ticks)
         
     return log
 
@@ -246,8 +248,6 @@ def translate(log_filename, log_format):
             log = transform_log_to_readable(log_format, log)
             
             yield log
-    
-    return log_format, translated_logs
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--help":
@@ -267,11 +267,13 @@ if __name__ == "__main__":
         files = {}
         for ltype in formats['types']:
             files[ltype] = open(logdir + ltype + '.txt', 'w')
+        gfile = open(logdir + 'ALL.txt', 'w')
             
         print('[!] Processing...')
         cur = 0
         for l in logs:
             save_log(files[l['type']], l)
+            save_log(gfile, l)
  
             cur += 1
             if cur % 10000 == 0:
