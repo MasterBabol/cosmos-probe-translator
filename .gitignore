@@ -106,3 +106,5 @@ venv.bak/
 log.txt
 log_format.h
 *.txt
+
+result/
