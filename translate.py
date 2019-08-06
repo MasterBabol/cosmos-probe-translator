@@ -242,7 +242,8 @@ def parse_log_format(format_filename):
     return log_format
 
 def translate(log_filename, log_format):
-    with open(log_filename) as f:
+    in_file = open(log_filename) if log_filename != '__stdin' else sys.stdin
+    with in_file as f:
         while True:
             rdata = f.readline()
             if not rdata: break
@@ -279,9 +280,9 @@ def get_insert_into_qstring(flattened_log):
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--help":
-        print('Usage: python translate.py [log file name: optional/default->log.txt] [format file name: optional/default->log_format.h]')
+        print('Usage: python translate.py [log file name: optional/default->stdin] [format file name: optional/default->log_format.h]')
     else:
-        log_filename = sys.argv[1] if len(sys.argv) > 1  else "log.txt"
+        log_filename = sys.argv[1] if len(sys.argv) > 1  else "__stdin"
         format_filename = sys.argv[2] if len(sys.argv) > 2 else "log_format.h"
     
         print('[!] Parsing the log format...')
