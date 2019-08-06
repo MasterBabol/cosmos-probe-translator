@@ -62,8 +62,6 @@ def transform_log_to_readable(log_format, log):
             log['payload'][k] = log_format['pobject'][log['payload'][k]]
         elif 'chNo' == k or 'wayNo' == k:
             log['payload'][k] = log['payload'][k] if int(log['payload'][k]) != 4294967295 else 'not specified'
-        elif 'timeStamp' == k or 'timerCountsForThisPeriod' == k:
-            log['payload'][k] = "{0:,} ns".format(int(log['payload'][k]) * 2) # ns (1s = 500M ticks)
         
     return log
 
