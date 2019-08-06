@@ -7,6 +7,8 @@ import re
 import io
 import copy
 import os
+import sqlite3 as sl3
+from itertools import chain
 
 class CursoredData:
     def __init__(self, bytesio_data):
@@ -78,15 +80,19 @@ def print_log(log):
     print_dict(log)
     print()
 
-def flatten_dict(dict_data):
+def flatten_dict(dict_data, remove_meta = False):
     cur_map = {}
     for k, v in dict_data.items():
+        if remove_meta == True:
+            if k == 'type' or k == 'tier' or k == 'status':
+                continue
         if isinstance(v, dict):
             cur_map.update(flatten_dict(v))
         elif isinstance(v, list):
             cur = 0
-            for lv in list:
+            for lv in v:
                 cur_map[k + '[' + str(cur) + ']'] = lv
+                cur += 1
         else:
             cur_map[k] = v
     return cur_map
@@ -249,6 +255,28 @@ def translate(log_filename, log_format):
             
             yield log, rlog
 
+def get_create_table_qstring(payload_type):
+    qstr = 'create table ?? ('
+    col_list = []
+    for tuple in payload_type:
+        if tuple[2] is not None:
+            for i in range(int(tuple[2])):
+                col_list.append(tuple[1].replace('.', '__') + '_' + str(i) + ' varchar')
+        else:
+            col_list.append(tuple[1].replace('.', '__') + ' varchar')
+    qstr += ','.join(col_list)
+    qstr += ');'
+    return qstr
+
+def get_insert_into_qstring(flattened_log):
+    qstr = 'insert into ?? values('
+    col_list = []
+    for i in range(0, len(flattened_log)):
+        col_list.append('?')
+    qstr += ','.join(col_list)
+    qstr += ');'
+    return qstr
+
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--help":
         print('Usage: python translate.py [log file name: optional/default->log.txt] [format file name: optional/default->log_format.h]')
@@ -258,26 +286,39 @@ if __name__ == "__main__":
     
         print('[!] Parsing the log format...')
         formats = parse_log_format(format_filename)
-        logs, readable_logs = translate(log_filename, formats)
+        logs_gen = translate(log_filename, formats)
         
         logdir = './result/' + log_filename + '/'
         if not os.path.exists(logdir):
             os.makedirs(logdir)
         
+        db_filename = logdir + 'result.db'
+        if os.path.exists(db_filename):
+            os.remove(db_filename)
+        conn = sl3.connect(db_filename)
+        cs = conn.cursor()
+        
         files = {}
+        i = 0
         for ltype in formats['types']:
             files[ltype] = open(logdir + ltype + '.txt', 'w')
+            cs.execute(get_create_table_qstring(formats['ptypes'][i]).replace('??', ltype))
+            i += 1
+        
         gfile = open(logdir + 'ALL.txt', 'w')
-            
+        
         print('[!] Starting...')
         cur = 0
-        for l in readable_logs:
-            save_log(files[l['type']], l)
-            save_log(gfile, l)
+        for raw_log, readable_log in logs_gen:
+            save_log(files[readable_log['type']], readable_log)
+            save_log(gfile, readable_log)
+            fdict = flatten_dict(readable_log, True)
+            cs.execute(get_insert_into_qstring(fdict).replace('??', readable_log['type']), [v for k, v in fdict.items()])
  
             cur += 1
             if cur % 1000 == 0:
                 print('[!] Processed the line ' + str(cur) + '.', end='\r')
+                conn.commit()
 
         print('\n[+] Finished.')
         
