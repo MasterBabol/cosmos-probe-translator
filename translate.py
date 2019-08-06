@@ -245,9 +245,9 @@ def translate(log_filename, log_format):
             rdata_bin = rawlog_to_bytesio(rdata)
             ld_raw = CursoredData(rdata_bin)
             log = cursored_data_to_log(log_format['ptypes'], ld_raw)
-            log = transform_log_to_readable(log_format, log)
+            rlog = transform_log_to_readable(log_format, log)
             
-            yield log
+            yield log, rlog
 
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--help":
@@ -258,7 +258,7 @@ if __name__ == "__main__":
     
         print('[!] Parsing the log format...')
         formats = parse_log_format(format_filename)
-        logs = translate(log_filename, formats)
+        logs, readable_logs = translate(log_filename, formats)
         
         logdir = './result/' + log_filename + '/'
         if not os.path.exists(logdir):
@@ -271,7 +271,7 @@ if __name__ == "__main__":
             
         print('[!] Starting...')
         cur = 0
-        for l in logs:
+        for l in readable_logs:
             save_log(files[l['type']], l)
             save_log(gfile, l)
  
