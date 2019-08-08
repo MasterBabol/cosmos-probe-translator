@@ -9,6 +9,7 @@ import copy
 import os
 import sqlite3 as sl3
 from itertools import chain
+from datetime import datetime
 
 class CursoredData:
     def __init__(self, bytesio_data):
@@ -307,6 +308,7 @@ if __name__ == "__main__":
         gfile = open(logdir + 'ALL.txt', 'w')
         
         print('[!] Starting...')
+        now = datetime.now()
         cur = 0
         for raw_log, readable_log in logs_gen:
             save_log(files[readable_log['type']], readable_log)
@@ -319,5 +321,7 @@ if __name__ == "__main__":
                 print('[!] Processed the line ' + str(cur) + '.', end='\r')
                 conn.commit()
 
+        later = datetime.now()
         print('\n[+] Finished.')
+        print('It took: ' + str((later-now).total_seconds()) + ' secs')
         
