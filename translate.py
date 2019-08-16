@@ -298,10 +298,8 @@ if __name__ == "__main__":
         conn = sl3.connect(db_filename)
         cs = conn.cursor()
         
-        files = {}
         i = 0
         for ltype in formats['types']:
-            files[ltype] = open(logdir + ltype + '.txt', 'w')
             cs.execute(get_create_table_qstring(formats['ptypes'][i]).replace('??', ltype))
             i += 1
         
@@ -311,7 +309,6 @@ if __name__ == "__main__":
         now = datetime.now()
         cur = 0
         for raw_log, readable_log in logs_gen:
-            save_log(files[readable_log['type']], readable_log)
             save_log(gfile, readable_log)
             fdict = flatten_dict(readable_log, True)
             cs.execute(get_insert_into_qstring(fdict).replace('??', readable_log['type']), [v for k, v in fdict.items()])
