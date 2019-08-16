@@ -153,7 +153,7 @@ def parse_struct_to_list_of_tuple(format_rawcontent, target_name, substruct_type
 def parse_struct_to_name_and_list_of_tuple(format_rawcontent, target_prefix, substruct_types):
     ret_list = []
     re_mat_pat = '\s*typedef\s+struct\s+_' + target_prefix + '(w*)\s*{((?:\s*[^}]+\s*,?)+)}\s*.*\s*;'
-    re_mem_pat = '\s*((?:[^;])+)\s+(\w+)\s*(?:\[(\d+)\])?\s*;\s*'
+    re_mem_pat = '\s*((?:[\w\s^;])+)\s+(\w+)\s*(?:\[(\d+)\])?\s*;\s*(?://.*|/\*.*\*/)*'
     
     m = re.search(re_mat_pat, format_rawcontent)
     target_name = m.group(1)
