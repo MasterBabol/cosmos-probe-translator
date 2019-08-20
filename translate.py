@@ -287,10 +287,6 @@ def get_insert_into_qstring(flattened_log):
     qstr += ');'
     return qstr
 
-def teeprint(exp, f):
-    print(str(exp))
-    f.write(str(exp) + '\n')
-
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--help":
         print('Usage: python translate.py [log file name: optional/default->stdin] [format file name: optional/default->log_format.h]')
@@ -310,8 +306,8 @@ if __name__ == "__main__":
         err_filename = logdir + 'error.txt'
         
         with open('translate-log.txt', 'a') as f:
-            teeprint('[!] Target name is [' + log_filename + ']...', f)
-            teeprint('[!] Parsing log format named [' + format_filename + ']...', f)
+            print('[!] Target name is [' + log_filename + ']...')
+            print('[!] Parsing log format named [' + format_filename + ']...')
             formats = parse_log_format(format_filename)
             logs_gen = translate(log_filename, formats, err_filename)
             
@@ -328,7 +324,7 @@ if __name__ == "__main__":
             
             gfile = open(logdir + 'plain-all.txt', 'w')
             
-            teeprint('[!] Starting...', f)
+            print('[!] Starting...')
             now = datetime.now()
             cur = 0
             total_errors = 0
@@ -344,7 +340,7 @@ if __name__ == "__main__":
                     conn.commit()
 
             later = datetime.now()
-            teeprint('\n[!] There was(were) {} error line(s).'.format(total_errors), f)
-            teeprint('[+] Finished.', f)
-            teeprint('[!] It took: ' + str((later-now).total_seconds()) + ' secs\n', f)
+            print('\n[!] There was(were) {} error line(s).'.format(total_errors))
+            print('[+] Finished.')
+            print('[!] It took: ' + str((later-now).total_seconds()) + ' secs\n')
         
