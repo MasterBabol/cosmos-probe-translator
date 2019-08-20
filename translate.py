@@ -287,54 +287,64 @@ def get_insert_into_qstring(flattened_log):
     qstr += ');'
     return qstr
 
+def teeprint(exp, f):
+    print(str(exp))
+    f.write(str(exp) + '\n')
+
 if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--help":
         print('Usage: python translate.py [log file name: optional/default->stdin] [format file name: optional/default->log_format.h]')
     else:
-        log_filename = sys.argv[1] if len(sys.argv) > 1  else "__stdin"
+        log_filepath = sys.argv[1] if len(sys.argv) > 1  else "__stdin"
         format_filename = sys.argv[2] if len(sys.argv) > 2 else "log_format.h"
         
-        logdir = './result/' + log_filename + '/'
+        if os.path.isdir(log_filepath):
+            log_filename = log_filepath + '/log.txt'
+        else:
+            log_filename = log_filepath
+        
+        logdir = './result/' + log_filepath + '/'
         if not os.path.exists(logdir):
             os.makedirs(logdir)
         
         err_filename = logdir + 'error.txt'
-    
-        print('[!] Target name is [' + log_filename + ']...')
-        print('[!] Parsing log format named [' + format_filename + ']...')
-        formats = parse_log_format(format_filename)
-        logs_gen = translate(log_filename, formats, err_filename)
         
-        db_filename = logdir + 'result.db'
-        if os.path.exists(db_filename):
-            os.remove(db_filename)
-        conn = sl3.connect(db_filename)
-        cs = conn.cursor()
-        
-        i = 0
-        for ltype in formats['types']:
-            cs.execute(get_create_table_qstring(formats['ptypes'][i]).replace('??', ltype))
-            i += 1
-        
-        gfile = open(logdir + 'plain-all.txt', 'w')
-        
-        print('[!] Starting...')
-        now = datetime.now()
-        cur = 0
-        total_errors = 0
-        for raw_log, readable_log, error_occurred in logs_gen:
-            total_errors += error_occurred
-            save_log(gfile, readable_log)
-            fdict = flatten_dict(readable_log, True)
-            cs.execute(get_insert_into_qstring(fdict).replace('??', readable_log['type']), [v for k, v in fdict.items()])
- 
-            cur += 1
-            if cur % 1000 == 0:
-                print('[!] Processed line ' + str(cur) + '.', end='\r')
-                conn.commit()
+        with open('translate-log.txt', 'a') as f:
+            teeprint('[!] Target name is [' + log_filename + ']...', f)
+            teeprint('[!] Parsing log format named [' + format_filename + ']...', f)
+            formats = parse_log_format(format_filename)
+            logs_gen = translate(log_filename, formats, err_filename)
+            
+            db_filename = logdir + 'result.db'
+            if os.path.exists(db_filename):
+                os.remove(db_filename)
+            conn = sl3.connect(db_filename)
+            cs = conn.cursor()
+            
+            i = 0
+            for ltype in formats['types']:
+                cs.execute(get_create_table_qstring(formats['ptypes'][i]).replace('??', ltype))
+                i += 1
+            
+            gfile = open(logdir + 'plain-all.txt', 'w')
+            
+            teeprint('[!] Starting...', f)
+            now = datetime.now()
+            cur = 0
+            total_errors = 0
+            for raw_log, readable_log, error_occurred in logs_gen:
+                total_errors += error_occurred
+                save_log(gfile, readable_log)
+                fdict = flatten_dict(readable_log, True)
+                cs.execute(get_insert_into_qstring(fdict).replace('??', readable_log['type']), [v for k, v in fdict.items()])
+     
+                cur += 1
+                if cur % 1000 == 0:
+                    print('[!] Processed line ' + str(cur) + '.', end='\r')
+                    conn.commit()
 
-        later = datetime.now()
-        print('\n[!] There was(were) {} error line(s).'.format(total_errors))
-        print('[+] Finished.')
-        print('[!] It took: ' + str((later-now).total_seconds()) + ' secs\n')
+            later = datetime.now()
+            teeprint('\n[!] There was(were) {} error line(s).'.format(total_errors), f)
+            teeprint('[+] Finished.', f)
+            teeprint('[!] It took: ' + str((later-now).total_seconds()) + ' secs\n', f)
         
