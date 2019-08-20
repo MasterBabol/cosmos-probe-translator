@@ -240,9 +240,10 @@ def parse_log_format(format_filename):
     
     return log_format
 
-def translate(log_filename, log_format):
+def translate(log_filename, log_format, err_filename):
     in_file = open(log_filename) if log_filename != '__stdin' else sys.stdin
-    with in_file as f:
+    cur = 1
+    with in_file as f, open(err_filename, 'w') as ef:
         while True:
             rdata = f.readline()
             if not rdata: break
@@ -251,9 +252,18 @@ def translate(log_filename, log_format):
             rdata_bin = rawlog_to_bytesio(rdata)
             ld_raw = CursoredData(rdata_bin)
             log = cursored_data_to_log(log_format['ptypes'], ld_raw)
-            rlog = transform_log_to_readable(log_format, log)
             
-            yield log, rlog
+            err = 0
+            try:
+                rlog = transform_log_to_readable(log_format, log)
+            except:
+                ef.write('[-] Translation failed at line ' + str(cur) + '.\n')
+                ef.write('[!] Reason: \n' + str(log) + '\n')
+                err = 1
+            
+            cur += 1
+            
+            yield log, rlog, err
 
 def get_create_table_qstring(payload_type):
     qstr = 'create table ?? ('
@@ -283,14 +293,17 @@ if __name__ == "__main__":
     else:
         log_filename = sys.argv[1] if len(sys.argv) > 1  else "__stdin"
         format_filename = sys.argv[2] if len(sys.argv) > 2 else "log_format.h"
-    
-        print('[!] Parsing the log format...')
-        formats = parse_log_format(format_filename)
-        logs_gen = translate(log_filename, formats)
         
         logdir = './result/' + log_filename + '/'
         if not os.path.exists(logdir):
             os.makedirs(logdir)
+        
+        err_filename = logdir + 'error.txt'
+    
+        print('[!] Target name is [' + log_filename + ']...')
+        print('[!] Parsing log format named [' + format_filename + ']...')
+        formats = parse_log_format(format_filename)
+        logs_gen = translate(log_filename, formats, err_filename)
         
         db_filename = logdir + 'result.db'
         if os.path.exists(db_filename):
@@ -303,22 +316,25 @@ if __name__ == "__main__":
             cs.execute(get_create_table_qstring(formats['ptypes'][i]).replace('??', ltype))
             i += 1
         
-        gfile = open(logdir + 'ALL.txt', 'w')
+        gfile = open(logdir + 'plain-all.txt', 'w')
         
         print('[!] Starting...')
         now = datetime.now()
         cur = 0
-        for raw_log, readable_log in logs_gen:
+        total_errors = 0
+        for raw_log, readable_log, error_occurred in logs_gen:
+            total_errors += error_occurred
             save_log(gfile, readable_log)
             fdict = flatten_dict(readable_log, True)
             cs.execute(get_insert_into_qstring(fdict).replace('??', readable_log['type']), [v for k, v in fdict.items()])
  
             cur += 1
             if cur % 1000 == 0:
-                print('[!] Processed the line ' + str(cur) + '.', end='\r')
+                print('[!] Processed line ' + str(cur) + '.', end='\r')
                 conn.commit()
 
         later = datetime.now()
-        print('\n[+] Finished.')
-        print('It took: ' + str((later-now).total_seconds()) + ' secs')
+        print('\n[!] There was(were) {} error line(s).'.format(total_errors))
+        print('[+] Finished.')
+        print('[!] It took: ' + str((later-now).total_seconds()) + ' secs\n')
         
