@@ -251,7 +251,12 @@ def translate(log_filename, log_format, err_filename):
             
             rdata_bin = rawlog_to_bytesio(rdata)
             ld_raw = CursoredData(rdata_bin)
-            log = cursored_data_to_log(log_format['ptypes'], ld_raw)
+            try:
+                log = cursored_data_to_log(log_format['ptypes'], ld_raw)
+            except:
+                ef.write('[-] Translation failed at line ' + str(cur) + '.\n')
+                ef.write('[!] Reason: Invalid log line.')
+                err = 1
             
             err = 0
             try:
