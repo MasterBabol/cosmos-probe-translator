@@ -36,6 +36,9 @@ def cursored_data_to_log(payload_types, cdata):
     log['status'] = cdata.get('uint32_t')
     log['payload'] = {}
     
+    if log['status'] == 0:
+        return log
+    
     payload_type = payload_types[log['type']]
     for tup in payload_type:
         if tup[2] is not None and int(tup[2]) > 1:
@@ -253,17 +256,17 @@ def translate(log_filename, log_format, err_filename):
             ld_raw = CursoredData(rdata_bin)
             try:
                 log = cursored_data_to_log(log_format['ptypes'], ld_raw)
+                if log['status'] != 0:
+                    err = 0
+                    try:
+                        rlog = transform_log_to_readable(log_format, log)
+                    except:
+                        ef.write('[-] Translation failed at line ' + str(cur) + '.\n')
+                        ef.write('[!] Reason: \n' + str(log) + '\n')
+                        err = 1
             except:
                 ef.write('[-] Translation failed at line ' + str(cur) + '.\n')
-                ef.write('[!] Reason: Invalid log line.')
-                err = 1
-            
-            err = 0
-            try:
-                rlog = transform_log_to_readable(log_format, log)
-            except:
-                ef.write('[-] Translation failed at line ' + str(cur) + '.\n')
-                ef.write('[!] Reason: \n' + str(log) + '\n')
+                ef.write('[!] Reason: Invalid log line.\n')
                 err = 1
             
             cur += 1
